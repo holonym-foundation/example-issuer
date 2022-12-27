@@ -37,6 +37,10 @@ export default class Issuer {
     //   return res.status(200).json(response);
     // }
 
+    // userId stands in for an ID that was assigned to the user outside of the
+    // Holonym system, during some verification flow. For example, this ID
+    // might be created by a 3rd party identity provider when a user completes
+    // an identity verification process with that provider.
     const userId = req.query?.userId;
     if (!userId) {
       return res.status(400).json({ error: "No userId specified" });
