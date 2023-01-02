@@ -1,6 +1,12 @@
+import { DerivedCreds, RawCreds } from "../types/types";
+
 // TODO: For testing purposes, update the following fields to match the
 // fields you extract from the API response.
-export const dummyUserCreds = {
+export const dummyUserCreds: {
+  rawCreds: RawCreds;
+  derivedCreds: DerivedCreds;
+  fieldsInLeaf: string[];
+} = {
   rawCreds: {
     firstName: "Satoshi",
     middleName: "Bitcoin",

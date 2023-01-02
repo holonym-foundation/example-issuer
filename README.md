@@ -1,12 +1,42 @@
 # Example Holonym Issuer
 
-To create a Holonym Issuer, follow the TODOs in the code.
+This is an opinionated example of a Holonym Issuer.
+
+To create a Holonym Issuer, fulfill the [Requirements](#requirements).
+
+There are TODOs in the code for guidance. However, it is possible that your issuer will require a different design than that of this example. As long as your issuer fulfills the [Requirements](#requirements), it will be considered for integration with Holonym.
+
+## Local environment setup
+
+This example issuer uses Next.js, TypeScript, and SQLite.
+
+- Node.js ^16.0.0 is recommended
+
+### 1. Install Node dependencies
+
+        npm install
+
+### 2. Environment variables
+
+#### Create .env files
+
+Copy .env.example to .env.local.
+
+        cp .env.example .env.local
+
+Set the environment variables in .env.local.
+
+### Run
+
+Open a terminal window, navigate to the directory of this repo, and run:
+
+        npm run dev
 
 ## Requirements
 
-An issuer must fulfill the following requirements in order to be considered for integration with the Holonym frontend.
+Every issuer run a server that fulfills the following requirements in order to be considered for integration with Holonym.
 
-Every issuer must expose a GET endpoint that returns a JSON object with the following properties:
+Every issuer must expose a GET endpoint that returns a JSON object (for any given user) with the following properties:
 
 ```TypeScript
 {
@@ -43,44 +73,20 @@ The `fieldsInLeaf` includes the names of the fields to be passed as input to the
 
 The syntax used in `fieldsInLeaf` follows the JSON dot notation convention (used by MongoDB, for example). In the above example, `rawCreds.firstName` means that the value of the `firstName` field in the `rawCreds` object is to be used. The `rawCreds` object is the `rawCreds` property of the JSON object returned by the GET endpoint.
 
-The `signature` property is the signature of the poseidon hash of the values of the fields in `fieldsInLeaf`. In pseudocode, the signature is computed as follows:
+The `signature` property is the signature of the poseidon hash of the values of the fields in `fieldsInLeaf`. There is an example in the code, but for illustration, here is some pseudocode for generating the signature:
 
 ```TypeScript
 signature = sign(poseidon(fieldsInLeaf.map((field) => get(field))));
 ```
 
-### Note
+## Frontend considerations
 
-The issuer is designed to handle GET requests. If your issuer server must handle POST requests during the user verification flow, you will need to add a handler for POST requests.
+We expect the issuer to implement their own frontend.
 
 ## Organization of src folder
 
-- `server.js` - Starts the server, registers routes, and handles termination.
-- `init.js` - Initializes resources used by the server. In this example, the only resource used is a database.
-- `issuer.js` - Includes the `Issuer` class that processes requests to the server.
-- `constants.js` - Includes constants used by the server.
-- `utils.js` - Includes utility functions used by the server.
-
-## Local environment setup
-
-- Node.js ^16.0.0 is recommended
-
-### 1. Install Node dependencies
-
-        npm install
-
-### 2. Environment variables
-
-#### Create .env files
-
-Copy .env.example to .env.
-
-        cp .env.example .env
-
-Set the environment variables in .env.
-
-## Run
-
-Open a terminal window, navigate to the directory of this repo, and run:
-
-        npm run start
+- `backend/init.ts` - Initializes resources used by the server. In this example, the only resource used is a database.
+- `backend/issuer.ts` - Includes the `Issuer` class that processes requests to the server.
+- `backend/constants.ts` - Includes constants used by the server.
+- `backend/utils.ts` - Includes utility functions used by the server.
+- `pages/api/issuer.ts` - Includes the API request router for the issuer.

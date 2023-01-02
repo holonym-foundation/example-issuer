@@ -1,24 +1,30 @@
 {
+  "name": "app",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "start": "node src/server",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "type": "module",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.209.0",
-    "@holonym-foundation/utils": "^1.0.1",
+    "@next/font": "13.1.1",
+    "@types/node": "18.11.18",
+    "@types/react": "18.0.26",
+    "@types/react-dom": "18.0.10",
+    "@types/sqlite3": "^3.1.8",
     "axios": "^0.27.2",
     "big-integer": "^1.6.51",
     "circomlibjs-old": "npm:circomlibjs@^0.0.8",
-    "cors": "^2.8.5",
     "dotenv": "^16.0.1",
-    "ethers": "^5.6.9",
-    "express": "^4.18.1",
-    "sqlite3": "^5.1.4"
-  },
-  "devDependencies": {
-    "eslint": "^8.20.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.26.0"
+    "eslint": "8.31.0",
+    "eslint-config-next": "13.1.1",
+    "ethers": "^5.7.2",
+    "next": "13.1.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "sqlite3": "^5.1.4",
+    "typescript": "4.9.4"
   }
 }
