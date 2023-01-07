@@ -27,10 +27,7 @@ const IssuerForm: React.FC<FormProps> = (props) => {
     const data = await resp.json();
 
     // Step 3. Issuer redirects user to Holonym frontend
-    const holonymUrl =
-      process.env.NODE_ENV === "development"
-        ? "http://localhost:3002"
-        : "https://app.holonym.id";
+    const holonymUrl = "http://localhost:3002"; // "https://app.holonym.id";
     const thisUrl = window.location.href;
     const retrievalEndpoint = `${thisUrl}api/issuer?userId=${data.userId}`;
     window.location.href = `${holonymUrl}/mint/credentials?retrievalEndpoint=${retrievalEndpoint}`;
