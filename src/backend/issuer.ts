@@ -94,8 +94,9 @@ export default class Issuer {
 
   async getUserFrom3rdParyApi(userId: string): Promise<ThirdPartyApiResponse | void> {
     try {
-      // TODO: Rewrite this to work with your 3rd party identity provider API
-      const url = "third-party-api-url";
+      // TODO: Rewrite this function to work with your 3rd party identity provider API.
+      // set url to the endpoint of your 3rd party identity provider API
+      const url = "http://localhost:3000/api/mock-provider";
       const headers = {
         "X-AUTH-CLIENT": this.apiKey,
         "Content-Type": "application/json",
@@ -126,7 +127,7 @@ export default class Issuer {
     // identifies the user. A hash of the string is used as the UUID.
     // It is important that the UUID is a function of the user's data
     // because it is used to prevent Sybil attacks.
-    const uuidConstituents = `${apiResp.firstName}${apiResp.lastName}${apiResp.dob}${apiResp.city}${apiResp.state}${apiResp.zip}`;
+    const uuidConstituents = `${apiResp.firstName}${apiResp.lastName}${apiResp.birthdate}${apiResp.city}${apiResp.state}${apiResp.zip}`;
     const uuid = sha256Hash(Buffer.from(uuidConstituents));
     return uuid;
   }
@@ -158,7 +159,7 @@ export default class Issuer {
     const firstName = apiResp.firstName ?? "";
     const middleName = apiResp.middleName ?? "";
     const lastName = apiResp.lastName ?? "";
-    const birthdate = apiResp.dob ?? "";
+    const birthdate = apiResp.birthdate ?? "";
     const country = apiResp.country ?? "";
     const completedAt = new Date().toISOString().split("T")[0];
     // NOTE: If you are hashing strings, it is easiest to convert them to

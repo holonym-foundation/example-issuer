@@ -40,7 +40,7 @@ export interface ThirdPartyApiResponse {
   middleName: string;
   lastName: string;
   country: string;
-  dob: string;
+  birthdate: string;
   city: string;
   state: string;
   zip: string;
