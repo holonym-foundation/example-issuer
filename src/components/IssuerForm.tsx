@@ -11,6 +11,7 @@ const IssuerForm: React.FC<FormProps> = (props) => {
   const [birthdate, setBirthdate] = useState("");
 
   async function handleSubmit() {
+    // Step 1. User submits data
     const resp = await fetch("/api/issuer", {
       method: "POST",
       headers: {
@@ -24,8 +25,15 @@ const IssuerForm: React.FC<FormProps> = (props) => {
       }),
     });
     const data = await resp.json();
-    console.log(data);
-    alert(data?.data);
+
+    // Step 3. Issuer redirects user to Holonym frontend
+    const holonymUrl =
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:3002"
+        : "https://app.holonym.id";
+    const thisUrl = window.location.href;
+    const retrievalEndpoint = `${thisUrl}api/issuer?userId=${data.userId}`;
+    window.location.href = `${holonymUrl}/mint/credentials?retrievalEndpoint=${retrievalEndpoint}`;
   }
 
   return (
