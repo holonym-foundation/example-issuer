@@ -108,12 +108,14 @@ In order for a user to use their credentials with Holonym, the user must retriev
 Once a user has registered with the issuer, the issuer must redirect the user to the following URL:
 
 ```bash
-https://app.holonym.id/mint/credentials/retrieve?retrievalEndpoint=<retrievalEndpoint>
+https://app.holonym.id/mint/<credentialType>/store?retrievalEndpoint=<retrievalEndpoint>
 ```
 
-where `<retrievalEndpoint>` is the URL of the endpoint from which the user's credentials can be retrieved. For example, the url might be `https://<issuerDomain>/api/issuer?userId=<userId>`.
+where `<credentialType>` is the type of credential you are issuing (e.g., "governmentId") and `<retrievalEndpoint>` is the URL of the endpoint from which the user's credentials can be retrieved. For example, the url might be `https://<issuerDomain>/api/issuer?userId=<userId>`.
 
-## Frontend considerations
+You will need to submit a pull request to the [Holonym frontend](https://github.com/holonym-foundation/zk-frontend/) to add your credential type to the list of whitelisted credential types.
+
+## Issuer frontend considerations
 
 We expect the issuer to implement their own frontend since the frontend needs of each issuer will likely be idiosyncratic. However, we provide a simple frontend in this example issuer to illustrate how the frontend fits into the credential issuance flow.
 
