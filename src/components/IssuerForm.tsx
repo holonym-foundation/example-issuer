@@ -30,7 +30,10 @@ const IssuerForm: React.FC<FormProps> = (props) => {
     const holonymUrl = "http://localhost:3002"; // "https://app.holonym.id";
     const thisUrl = window.location.href;
     const retrievalEndpoint = `${thisUrl}api/issuer?userId=${data.userId}`;
-    window.location.href = `${holonymUrl}/mint/credentials?retrievalEndpoint=${retrievalEndpoint}`;
+    const encodedRetrievalEndpoint = encodeURIComponent(
+      window.btoa(retrievalEndpoint)
+    );
+    window.location.href = `${holonymUrl}/mint/external/store?retrievalEndpoint=${encodedRetrievalEndpoint}`;
   }
 
   return (
