@@ -18,7 +18,7 @@ Holonym is designed to allow issuers seemlessly integrate with the system. The f
    - _This step is illustrated by the handling of POST requests in the `pages/api/issuer.ts` file._
 3. Issuer redirects user to Holonym frontend. Because the user's credentials are encrypted client-side with information restricted to the app.holonym.id domain, the user must be at the Holonym frontend to retrieve their credentials. With the redirect, the issuer must provide the URL of the GET endpoint that will return the user's credentials.
    - _This step is illustrated in the `<IssuerForm />` component._
-4. Holonym retrieves user data. Given the `retrievalEndpoint` with the `userId`, Holonym requests the user's data from the issuer's server. At this time, the issuer formats the user's credentials and signs them so that they can be used to generate zero knowledge proofs.
+4. Holonym retrieves user data. Given the `retrievalEndpoint` with the `userId`, Holonym requests the user's data from the issuer's server. At this time, the issuer formats the user's credentials and signs them so that they can be used to generate trusted zero knowledge proofs.
    - _This step is illustrated by the handling of GET requests in the `pages/api/issuer.ts` file._
 
 ## Local environment setup
@@ -62,39 +62,69 @@ Every issuer must expose a GET endpoint that returns a JSON object (for any give
 
 ```TypeScript
 {
-        issuer: string;
+    creds: {
+        customFields: string[]; // 2 items
+        iat: string;
+        issuerAddress: string;
+        scope: string;
         secret: string;
-        scope: number | string; // if string, it is a representation of a number
-        signature: string;
-        rawCreds: {
-            [string]: number | string; // if string, it is a representation of a number
+        serializedAsPreimage: string[]; // 6 items
+    };
+    leaf: string; // hex string
+    pubkey: {
+        x: string; // hex string
+        y: string; // hex string
+    };
+    signature: {
+        R8: {
+            x: string; // hex string
+            y: string; // hex string
         };
-        derivedCreds?: {
-            [string]: {
-                value: number | string; // if string, it is a representation of a number
-                derivationFunction: string; // e.g., "poseidon"
+        S: string; // hex string
+    };
+};
+```
+
+These properties are already in the return value of the `issue` function from the `holonym-wasm-issuer` package. When calling `issue`, you just need to specify a private key and two custom fields in the issued leaf.
+
+We also encourage issuers to add a `metadata` field to the JSON object that includes, at minimum, a `rawCreds` object. This will allow Holonym to display the user's data in the app. We also encourage issuers to include a `derivedCreds` field and a `fieldsInLeaf` field in the metadata object so that developers who are dealing with the object can easily reconstruct the issued leaf for Merkle proofs. For example:
+
+```TypeScript
+{
+    metadata: {
+        rawCreds: {
+            name: string;
+            birthdate: string;
+        };
+        derivedCreds: {
+            streetHash: {
+                value: string;
+                derivationFunction: string;
                 inputFields: string[];
             };
         };
         fieldsInLeaf: string[];
+    };
+    creds: {
+        // ...
+    };
+    leaf: string; // hex string
+    pubkey: {
+        // ...
+    };
+    signature: {
+        // ...
+    };
 };
 ```
 
-`issuer` must be the issuer's blockchain address. It must belong to the account that generated the `signature`.
+This example issuer includes a `metadata` field with all of the recommended properties.
 
-`secret` is a 16 byte secret represented as a hex string.
-
-`scope` represents the scope of the credentials being issued. A scope of `0` means that the credentials are valid anywhere. A different scope means that the credentials are only valid for a specific domain. We recommend setting scope to `0`.
-
-`signature` is the signature of the poseidon hash of the values of the fields in `fieldsInLeaf`. There is an example in the code, but for illustration, here is some pseudocode for generating the signature:
-
-```TypeScript
-signature = sign(poseidon(fieldsInLeaf.map((field) => get(field))));
-```
+More info on the properties of the `metadata` field:
 
 `rawCreds` is an object containing the unaltered credentials. For example, a "raw" credential might be a user's first name, "John".
 
-`derivedCreds` is an object containing the derived credentials. For example, a derived credential might be a hash of the concatenation of the user's first name, middle name, and last name. The purpose of `derivedCreds` is to allow issuers to pack more than 3 credentials into a single leaf.
+`derivedCreds` is an object containing the derived credentials. For example, a derived credential might be a hash of the concatenation of the user's first name, middle name, and last name. The purpose of `derivedCreds` is to allow issuers to pack more than 2 credentials into a single leaf.
 
 `fieldsInLeaf` includes the names of the fields to be passed as input to the poseidon hash function to produce a leaf in the Merkle tree. The `fieldsInLeaf` property must contain exactly six fields, and certain fields are required: `issuer` must be the 0th element, `secret` must be the 1st element, `scope` must be the 5th element. The remaining three fields are optional. The following is an example of a valid `fieldsInLeaf` array:
 
@@ -104,12 +134,12 @@ signature = sign(poseidon(fieldsInLeaf.map((field) => get(field))));
     "secret", // Required.
     "rawCreds.firstName",
     "rawCreds.middleName",
-    "rawCreds.lastName",
+    "iat", // Required.
     "scope", // Required.
 ]
 ```
 
-The syntax used in `fieldsInLeaf` follows the JSON dot notation convention (used by MongoDB, for example). In the above example, `rawCreds.firstName` means that the value of the `firstName` field in the `rawCreds` object is to be used. The `rawCreds` object is the `rawCreds` property of the JSON object returned by the GET endpoint.
+The syntax used in `fieldsInLeaf` follows the JSON dot notation convention (used by MongoDB, for example). In the above example, `rawCreds.firstName` means that the value of the `firstName` field in the `rawCreds` object is to be used.
 
 ### Redirect requirements
 
@@ -125,13 +155,14 @@ where `<retrievalEndpoint>` is the base64-encoded URL of the endpoint from which
 
 #### Pull request
 
-You will need to submit a pull request to the [Holonym frontend](https://github.com/holonym-foundation/zk-frontend/) to add your credential type to the list of whitelisted credential types.
+You will need to submit a pull request to the [Holonym frontend](https://github.com/holonym-foundation/zk-frontend/) to add your issuer to the issuer whitelist.
 
 In your PR, please include:
 
 1. The type of credential you are adding (e.g., "university degree").
-2. A link to the GitHub repo of your issuer.
-3. The name of your organization (if applicable).
+2. The issuer address (i.e., the `issuerAddress` property on the `creds` object described above).
+3. A link to the GitHub repo of your issuer.
+4. The name of your organization (if applicable).
 
 ## Issuer frontend considerations
 

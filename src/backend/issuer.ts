@@ -1,37 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
-import { ethers, Wallet } from "ethers";
+import { ethers } from "ethers";
 import { poseidon } from "circomlibjs-old";
-import {
-  sha256Hash,
-  generateSecret,
-  getDateAsInt,
-  selectUser,
-  insertUser,
-} from "./utils";
+import { issue } from "holonym-wasm-issuer";
+import { sha256Hash, getDateAsInt, selectUser, insertUser } from "./utils";
 import { dummyUserCreds } from "./constants";
-import {
-  IssuerResponse,
-  RawCreds,
-  DerivedCreds,
-  ThirdPartyApiResponse,
-} from "../types/types";
+import { IssuerResponse, ThirdPartyApiResponse } from "../types/types";
 
 interface ErrorResponse {
   error: string;
 }
 
 export default class Issuer {
-  signer: Wallet;
-  apiKey: string;
-
-  constructor(privateKey?: string, apiKey?: string) {
-    // Create ethers signer
-    const _privateKey = privateKey ?? (process.env.PRIVATE_KEY as string);
-    this.signer = new ethers.Wallet(_privateKey);
-    // Set API key
-    this.apiKey = apiKey ?? (process.env.API_KEY as string);
-  }
+  constructor() {}
 
   async handleGetRequest(
     req: NextApiRequest,
@@ -39,18 +20,14 @@ export default class Issuer {
   ) {
     // NOTE: Uncomment if you want to receive dummy credentials in development
     if (process.env.NODE_ENV == "development") {
-      const credentials = {
-        ...dummyUserCreds,
-        issuer: this.signer.address,
-        secret: generateSecret(),
-        scope: 0,
-      };
-      const serializedCreds = this.serializeCreds(credentials);
-      const signature = await this.signCredentials(serializedCreds);
+      const issuedObject = issue(
+        process.env.ISSUER_PRIVATE_KEY as string,
+        getDateAsInt(dummyUserCreds.rawCreds.birthdate as string).toString(),
+        dummyUserCreds.derivedCreds.nameHash.value
+      );
       const response = {
-        ...credentials,
-        signature,
-        serializedCreds,
+        ...issuedObject,
+        metadata: dummyUserCreds,
       };
       return res.status(200).json(response);
     }
@@ -81,12 +58,14 @@ export default class Issuer {
       return res.status(400).json({ error: sybilResult.error });
     }
     const credentials = this.extractCredentials(resp);
-    const serializedCreds = this.serializeCreds(credentials);
-    const signature = await this.signCredentials(serializedCreds);
+    const issuedObject = issue(
+      process.env.ISSUER_PRIVATE_KEY as string,
+      getDateAsInt(credentials.rawCreds.birthdate).toString(),
+      credentials.derivedCreds.nameHash.value
+    );
     const response = {
-      ...credentials,
-      signature,
-      serializedCreds,
+      ...issuedObject,
+      metadata: dummyUserCreds,
     };
     await this.removeUserFrom3rdPartyApi(userId);
     return res.status(200).json(response);
@@ -98,7 +77,7 @@ export default class Issuer {
       // set url to the endpoint of your 3rd party identity provider API
       const url = "http://localhost:3000/api/mock-provider";
       const headers = {
-        "X-AUTH-CLIENT": this.apiKey,
+        "X-AUTH-CLIENT": process.env.API_KEY as string,
         "Content-Type": "application/json",
       };
       const resp = await axios.get(url, { headers: headers });
@@ -173,9 +152,6 @@ export default class Issuer {
       ].map((x) => ethers.BigNumber.from(x).toString())
     ).toString();
     return {
-      issuer: this.signer.address,
-      secret: generateSecret(),
-      scope: 0,
       // The raw credentials. These can be either strings or numbers. They
       // can be used as inputs to a leaf. They will be displayed as "nyms"
       // on the user's profile page on app.holonym.id.
@@ -207,60 +183,11 @@ export default class Issuer {
         "issuer", // Required. Do not change.
         "secret", // Required. Do not change.
         "rawCreds.birthdate",
-        "rawCreds.completedAt",
         "derivedCreds.nameHash.value",
+        "iat", // Required. Do not change.
         "scope", // Required. Do not change.
       ],
     };
-  }
-
-  /**
-   * Serialize the credentials into the 6 field elements they will be as the preimage to the leaf.
-   * @param {Object} creds Object containing a full string representation of every credential.
-   * @returns 6 string representations of the preimage's 6 field elements, in order
-   */
-  serializeCreds(credentials: {
-    issuer: string;
-    secret: string;
-    scope: string | number;
-    rawCreds: RawCreds;
-    derivedCreds: DerivedCreds;
-    fieldsInLeaf: string[];
-  }) {
-    // NOTE: Nothing needs to change here if the fields in leaf are strings or numbers
-    const leafInputs = [];
-    for (const name of credentials.fieldsInLeaf) {
-      if (name == "issuer" || name == "secret" || name == "scope") {
-        leafInputs.push(credentials[name]);
-      } else if (name.includes("rawCreds")) {
-        const rawCred = credentials.rawCreds[name.split(".")[1]];
-        // NOTE: If the raw credential is a date (represented as a string)
-        // that you want to represent as a number, you will have to implement
-        // a specific check for that field. You can use the `getDateAsInt`
-        // function for the conversion, as shown below.
-        if (name.includes("birthdate") || name.includes("completedAt")) {
-          leafInputs.push(getDateAsInt(rawCred as string));
-          continue;
-        }
-        if (typeof rawCred == "string" && parseInt(rawCred).toString() == "NaN") {
-          leafInputs.push(Buffer.from(rawCred, "utf-8"));
-        } else {
-          leafInputs.push(rawCred);
-        }
-      } else if (name.includes("derivedCreds")) {
-        leafInputs.push(credentials.derivedCreds[name.split(".")[1]].value);
-      }
-    }
-    return leafInputs.map((x) => ethers.BigNumber.from(x).toString());
-  }
-
-  async signCredentials(serializedCreds: string[]) {
-    // NOTE: Nothing needs to change here
-    const leafAsBigInt = poseidon(serializedCreds);
-    const leaf = ethers.utils.arrayify(ethers.BigNumber.from(leafAsBigInt));
-
-    const signature = await this.signer.signMessage(leaf);
-    return signature;
   }
 
   async removeUserFrom3rdPartyApi(userId: string) {
@@ -269,7 +196,7 @@ export default class Issuer {
       const url = "third-party-api-url";
       const resp = await axios.delete(url, {
         headers: {
-          "X-AUTH-CLIENT": this.apiKey,
+          "X-AUTH-CLIENT": process.env.API_KEY as string,
           "Content-Type": "application/json",
         },
       });

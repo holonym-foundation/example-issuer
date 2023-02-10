@@ -1,13 +1,9 @@
-import { createHash, randomBytes } from "crypto";
+import { createHash } from "crypto";
 import assert from "assert";
 import { sqlDb } from "./init";
 
 export function sha256Hash(data: Buffer) {
   return createHash("sha256").update(data).digest().toString("hex");
-}
-
-export function generateSecret(numBytes = 16) {
-  return "0x" + randomBytes(numBytes).toString("hex");
 }
 
 /**

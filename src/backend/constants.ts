@@ -1,11 +1,11 @@
-import { DerivedCreds, RawCreds } from "../types/types";
+import { DerivedCreds, FieldsInLeaf, RawCreds } from "../types/types";
 
 // TODO: For testing purposes, update the following fields to match the
 // fields you extract from the API response.
 export const dummyUserCreds: {
   rawCreds: RawCreds;
   derivedCreds: DerivedCreds;
-  fieldsInLeaf: string[];
+  fieldsInLeaf: FieldsInLeaf;
 } = {
   rawCreds: {
     firstName: "Satoshi",
@@ -28,7 +28,7 @@ export const dummyUserCreds: {
     "secret", // Required. Do not change.
     "derivedCreds.nameHash.value",
     "rawCreds.birthdate",
-    "rawCreds.completedAt",
+    "iat", // Required. Do not change.
     "scope", // Required. Do not change.
   ],
 };
